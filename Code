@@ -36,11 +36,11 @@ for(p in 1:10){
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
 
-  for(t in 1:5){
+  for(i in 1:5){
   
-  Pos_tst = as.character(PT_ls[[t]])
-  y.tnr<-DT
-  y.tnr[Pos_tst,"X1"]<-NA
+ tst <- which(folds == i) 
+    yNA <- DT
+    yNA[tst] <- NA
   
 ans <- mmer(X1~1,
             random=~vs(id,Gu=K),
@@ -48,7 +48,7 @@ ans <- mmer(X1~1,
             data=y.tnr,verbose = FALSE) # kinship based
 ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
 rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-PC[t,p]<-cor(ans$U$`u:id`$X1[Pos_tst,],DT[Pos_tst,"X1"], use="complete")
+PC[t,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
   }
 }
 summary(PC)
@@ -68,7 +68,7 @@ cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and y
 
 for (iter in 1:10) {
   # Set up variables
-  y <- Pheno[,1] # assuming GY is the name of your trait
+  y <- DT[,1] # assuming GY is the name of your trait
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
 
@@ -84,7 +84,7 @@ ans <- mmer(cbind(X1,X2)~1,
                 data=y.trn,verbose = FALSE) # kinship based
     ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
     rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+    cor_matrix[iter,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
 }
 }
 
@@ -106,7 +106,7 @@ cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and y
 
 for (iter in 1:10) {
   # Set up variables
-  y <- Pheno[,1] # assuming GY is the name of your trait
+  y <- DT[,1] # assuming GY is the name of your trait
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
 
@@ -122,7 +122,7 @@ ans <- mmer(cbind(X1,X2)~1,
                 data=y.trn,verbose = FALSE) # kinship based
     ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
     rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+    cor_matrix[iter,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
 }
 }
 
@@ -145,7 +145,7 @@ cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and y
 
 for (iter in 1:10) {
   # Set up variables
-  y <- Pheno[,1] # assuming GY is the name of your trait
+  y <- DT[,1] # assuming GY is the name of your trait
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
 
@@ -161,7 +161,7 @@ ans <- mmer(cbind(X1,X3,X4,X5,X6,X7)~1,
                 data=y.trn,verbose = FALSE) # kinship based
     ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
     rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+    cor_matrix[iter,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
 }
 }
 
@@ -183,7 +183,7 @@ cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and y
 
 for (iter in 1:10) {
   # Set up variables
-  y <- Pheno[,1] # assuming GY is the name of your trait
+  y <- DT[,1] # assuming GY is the name of your trait
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
 
@@ -199,7 +199,7 @@ ans <- mmer(cbind(X1,,X3,X4,X5,X6,X7)~1,
                 data=y.trn,verbose = FALSE) # kinship based
     ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
     rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+    cor_matrix[iter,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
 }
 }
 
@@ -211,7 +211,7 @@ cor_matrix
 
 
 
-### Multivariate BRR using 10 cycles of 5-fold cross-validation (CV1) ###  
+### Multivariate Bayesian Ridge Regression BRR using 10 cycles of 5-fold cross-validation (CV1) ###  
 # The script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
 
 
@@ -232,7 +232,7 @@ for (iter in 1:10) {
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
 
-  # Here the loop for each part of the fifth we have.
+  # Here is the loop for each part of the fifth we have.
   for (i in 1:max(folds)) {
     tst <- which(folds == i) 
     yNA <- DT
@@ -262,7 +262,7 @@ for (iter in 1:10) {
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
 
-  # Here the loop for each part of the fifth we have.
+  # Here is the loop for each part of the fifth we have.
   for (i in 1:max(folds)) {
     tst <- which(folds == i) 
     yNA <- DT
@@ -288,7 +288,7 @@ cor_matrix
 
 
 ### Multivariate SpikeSlab using 10 cycles of 5-fold cross-validation (CV1) ###  
-# the script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
+# The script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
 
 
 # Here we define our predictors
@@ -308,7 +308,7 @@ for (iter in 1:10) {
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
 
-  # Here the loop for each part of the fifth we have.
+  # Here is the loop for each part of the fifth we have.
   for (i in 1:max(folds)) {
     tst <- which(folds == i) 
     yNA <- DT
@@ -338,7 +338,7 @@ for (iter in 1:10) {
   n <- length(y) # to calculate the length of the genotypes we are going to analyze
   folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
 
-  # Here the loop for each part of the fifth we have.
+  # Here is the loop for each part of the fifth we have.
   for (i in 1:max(folds)) {
     tst <- which(folds == i) 
     yNA <- DT
