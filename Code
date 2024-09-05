@@ -1,0 +1,665 @@
+### Univariate GBLUP using 10 cycles of 5-fold cross-validation ###
+#Script example for one trait grain yield in high nitrogen and well-watered (HNW) (named X1)
+
+#required packages
+library(rrBLUP)
+library(BGLR)
+library(sommer)
+
+
+#load the Markers and Phenotypes
+Markers <- as.matrix(read.table(file="INPUT_SNP_0.05_MAF_IMPUTED.txt"), header=F)
+head(Markers)
+Pheno <-as.matrix(read.table(file ="ALL_PHENO_FINAL.txt", header=TRUE))
+head(Pheno)
+
+#check the dimensions of the matrices
+dim(Markers)
+dim(Pheno)
+
+#rename elements
+DT <- Pheno
+GT <- Markers
+colnames(DT) <- paste0("X",1:ncol(DT))
+DT <- as.data.frame(DT);DT$id <- as.factor(rownames(DT))
+
+
+#compute the G matrix
+K <- A.mat(GT)
+
+PC=as.data.frame(matrix(NA, 5))
+
+#stating the loop
+for(p in 1:10){
+  
+  y <- DT[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
+
+  for(t in 1:5){
+  
+  Pos_tst = as.character(PT_ls[[t]])
+  y.tnr<-DT
+  y.tnr[Pos_tst,"X1"]<-NA
+  
+ans <- mmer(X1~1,
+            random=~vs(id,Gu=K),
+            rcov=~units,
+            data=y.tnr,verbose = FALSE) # kinship based
+ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
+rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
+PC[t,p]<-cor(ans$U$`u:id`$X1[Pos_tst,],DT[Pos_tst,"X1"], use="complete")
+  }
+}
+summary(PC)
+
+
+
+
+
+
+
+
+### Multivariate GBLUP using 10 cycles of 5-fold cross-validation (CV1) ###  
+#Predicting Grain yield in high nitrogen and well-watered (HNW) (named X1) using Grain yield in low nitrogen under rainfed (LNR) (named X2) 
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation 10 times (you can change this)
+
+for (iter in 1:10) {
+  # Set up variables
+  y <- Pheno[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
+
+  # Here is the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    y.trn[tst,] <- NA
+  
+ans <- mmer(cbind(X1,X2)~1,
+                random=~vs(id,Gu=K),
+                rcov=~units,
+                data=y.trn,verbose = FALSE) # kinship based
+    ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
+    rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
+    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+}
+}
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+
+
+
+
+### Multivariate GBLUP using 10 cycles of 5-fold cross-validation (CV2) ###
+#Predicting Grain yield in high nitrogen and well-watered HNW using Grain yield in low nitrogen under rainfed (LNR) 
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
+
+for (iter in 1:10) {
+  # Set up variables
+  y <- Pheno[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
+
+  # Here is the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) #in this case we are taking part in testing the population
+    yNA <- DT
+    y.trn[tst] <- NA 
+  
+ans <- mmer(cbind(X1,X2)~1,
+                random=~vs(id,Gu=K),
+                rcov=~units,
+                data=y.trn,verbose = FALSE) # kinship based
+    ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
+    rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
+    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+}
+}
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+
+
+
+
+
+### Multivariate GBLUP using 10 cycles of 5-fold cross-validation (CV1) ###  
+#Predicting Grain yield in high nitrogen and well-watered (HNW) (named X1) the best-correlated traits 
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation 10 times (you can change this)
+
+for (iter in 1:10) {
+  # Set up variables
+  y <- Pheno[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
+
+  # Here is the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    y.trn[tst,] <- NA
+  
+ans <- mmer(cbind(X1,X3,X4,X5,X6,X7)~1,
+                random=~vs(id,Gu=K),
+                rcov=~units,
+                data=y.trn,verbose = FALSE) # kinship based
+    ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
+    rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
+    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+}
+}
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+
+
+
+
+### Multivariate GBLUP using 10 cycles of 5-fold cross-validation (CV2) ###
+#Predicting Grain yield in high nitrogen and well-watered HNW using the best-correlated traits 
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
+
+for (iter in 1:10) {
+  # Set up variables
+  y <- Pheno[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
+
+  # Here is the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    y.trn[tst] <- NA 
+  
+ans <- mmer(cbind(X1,,X3,X4,X5,X6,X7)~1,
+                random=~vs(id,Gu=K),
+                rcov=~units,
+                data=y.trn,verbose = FALSE) # kinship based
+    ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
+    rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
+    cor_matrix[k,l]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+}
+}
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+
+
+### Multivariate BRR using 10 cycles of 5-fold cross-validation (CV1) ###  
+# The script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
+
+
+# Here we define our predictors
+ETA<-list(list(X=GT,model="BRR"))
+
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
+
+
+##  CV1  ##
+
+# Repeat the cross-validation process 10 times, you can change if you want to repeat the loop five times, you can just put 1:5
+for (iter in 1:10) {
+  # Set up variables
+  y <- DT[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
+
+  # Here the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    yNA[tst,] <- NA #we put NAs for this population because we want to predict this part
+    #this is the model, we use the phenotype in y, yNA is the vector of the target variables with the NAs for the testing population,
+    # ETA is our predictor. nIter is the number of interactions, this is how many times the model has an output and this output is used as input again, this number is usually related to tha size of the population (12k is okay).
+    # burnIn is the number of the interaction that the model uses for warming up (5k is okay).
+    fm <- Multitrait(y = yNA, ETA = ETA, nIter = 12000, burnIn = 5000)
+    yp_ts <- fm$ETAHat # fm is a list which has several parameters. you can find the prediction as yHat
+    cor_matrix[iter, i] <- cor(y[tst], yp_ts[tst], use = "complete") # We are interested in making the correlation between our observed values and the prediction of each test population.so we use the function cor for the correlations which should be just for the testing [tst]. we store all the correlations in the matrix cor_matrix
+  }
+}
+
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+##  CV2  ##
+
+# Repeat the cross-validation process 10 times, you can change if you want to repeat the loop five times, you can just put 1:5
+for (iter in 1:10) {
+  # Set up variables
+  y <- DT[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
+
+  # Here the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    yNA[tst] <- NA #we put NAs for this population because we want to predict this part
+    #this is the model, we use the phenotype in y, yNA is the vector of the target variables with the NAs for the testing population,
+    # ETA is our predictor. nIter is the number of interactions, this is how many times the model has an output and this output is used as input again, this number is usually related to tha size of the population (12k is okay).
+    # burnIn is the number of the interaction that the model uses for warming up (5k is okay).
+    fm <- Multitrait(y = yNA, ETA = ETA, nIter = 12000, burnIn = 5000)
+    yp_ts <- fm$ETAHat # fm is a list which has several parameters. you can find the prediction as yHat
+    cor_matrix[iter, i] <- cor(y[tst], yp_ts[tst], use = "complete") # We are interested in making the correlation between our observed values and the prediction of each test population.so we use the function cor for the correlations which should be just for the testing [tst]. we store all the correlations in the matrix cor_matrix
+  }
+}
+
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+
+
+
+
+### Multivariate SpikeSlab using 10 cycles of 5-fold cross-validation (CV1) ###  
+# the script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
+
+
+# Here we define our predictors
+ETA<-list(list(X=GT,model="SpikeSlab"))
+
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
+
+
+##  CV1  ##
+
+# Repeat the cross-validation process 10 times, you can change if you want to repeat the loop five times, you can just put 1:5
+for (iter in 1:10) {
+  # Set up variables
+  y <- DT[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
+
+  # Here the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    yNA[tst,] <- NA #we put NAs for this population because we want to predict this part
+    #this is the model, we use the phenotype in y, yNA is the vector of the target variables with the NAs for the testing population,
+    # ETA is our predictor. nIter is the number of interactions, this is how many times the model has an output and this output is used as input again, this number is usually related to tha size of the population (12k is okay).
+    # burnIn is the number of the interaction that the model uses for warming up (5k is okay).
+    fm <- Multitrait(y = yNA, ETA = ETA, nIter = 12000, burnIn = 5000)
+    yp_ts <- fm$ETAHat # fm is a list which has several parameters. you can find the prediction as yHat
+    cor_matrix[iter, i] <- cor(y[tst], yp_ts[tst], use = "complete") # We are interested in making the correlation between our observed values and the prediction of each test population.so we use the function cor for the correlations which should be just for the testing [tst]. we store all the correlations in the matrix cor_matrix
+  }
+}
+
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+##  CV2  ##
+
+# Repeat the cross-validation process 10 times, you can change if you want to repeat the loop five times, you can just put 1:5
+for (iter in 1:10) {
+  # Set up variables
+  y <- DT[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
+
+  # Here the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    yNA[tst] <- NA #we put NAs for this population because we want to predict this part
+    #this is the model, we use the phenotype in y, yNA is the vector of the target variables with the NAs for the testing population,
+    # ETA is our predictor. nIter is the number of interactions, this is how many times the model has an output and this output is used as input again, this number is usually related to tha size of the population (12k is okay).
+    # burnIn is the number of the interaction that the model uses for warming up (5k is okay).
+    fm <- Multitrait(y = yNA, ETA = ETA, nIter = 12000, burnIn = 5000)
+    yp_ts <- fm$ETAHat # fm is a list which has several parameters. you can find the prediction as yHat
+    cor_matrix[iter, i] <- cor(y[tst], yp_ts[tst], use = "complete") # We are interested in making the correlation between our observed values and the prediction of each test population.so we use the function cor for the correlations which should be just for the testing [tst]. we store all the correlations in the matrix cor_matrix
+  }
+}
+
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+
+
+
+
+
+### Multivariate Reproducing Kernel Hilbert Space (RKHS) using 10 cycles of 5-fold cross-validation (CV1) ###  
+# The script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
+
+
+### DISTANCE MATRIX #############################
+X<-scale(GT,center = T,scale = T)
+n<-nrow(X)
+p<-ncol(X)
+D<-(as.matrix(dist(X,method="euclidean"))^2)/p
+h<-round(1/median(D[row(D)>col(D)]),2)
+h<-h*c(1/5,1,5)
+
+K1=exp(-h[1]*D)
+K2=exp(-h[2]*D)
+K3=exp(-h[3]*D)
+
+### MODEL FITTING #################################
+
+ETA =  list(list(model='RKHS',K = K1),
+            list(model='RKHS',K = K2),
+            list(model='RKHS',K = K3))
+
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
+
+
+##  CV1  ##
+
+# Repeat the cross-validation process 10 times, you can change if you want to repeat the loop five times, you can just put 1:5
+for (iter in 1:10) {
+  # Set up variables
+  y <- DT[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
+
+  # Here the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    yNA[tst,] <- NA #we put NAs for this population because we want to predict this part
+    #this is the model, we use the phenotype in y, yNA is the vector of the target variables with the NAs for the testing population,
+    # ETA is our predictor. nIter is the number of interactions, this is how many times the model has an output and this output is used as input again, this number is usually related to tha size of the population (12k is okay).
+    # burnIn is the number of the interaction that the model uses for warming up (5k is okay).
+    fm <- Multitrait(y = yNA, ETA = ETA, nIter = 12000, burnIn = 5000)
+    yp_ts <- fm$ETAHat # fm is a list which has several parameters. you can find the prediction as yHat
+    cor_matrix[iter, i] <- cor(y[tst], yp_ts[tst], use = "complete") # We are interested in making the correlation between our observed values and the prediction of each test population.so we use the function cor for the correlations which should be just for the testing [tst]. we store all the correlations in the matrix cor_matrix
+  }
+}
+
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+##  CV2  ##
+
+# Repeat the cross-validation process 10 times, you can change if you want to repeat the loop five times, you can just put 1:5
+for (iter in 1:10) {
+  # Set up variables
+  y <- DT[,1] # assuming GY is the name of your trait
+  n <- length(y) # to calculate the length of the genotypes we are going to analyze
+  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population in 5 parts
+
+  # Here the loop for each part of the fifth we have.
+  for (i in 1:max(folds)) {
+    tst <- which(folds == i) 
+    yNA <- DT
+    yNA[tst] <- NA #we put NAs for this population because we want to predict this part
+    #this is the model, we use the phenotype in y, yNA is the vector of the target variables with the NAs for the testing population,
+    # ETA is our predictor. nIter is the number of interactions, this is how many times the model has an output and this output is used as input again, this number is usually related to tha size of the population (12k is okay).
+    # burnIn is the number of the interaction that the model uses for warming up (5k is okay).
+    fm <- Multitrait(y = yNA, ETA = ETA, nIter = 12000, burnIn = 5000)
+    yp_ts <- fm$ETAHat # fm is a list which has several parameters. you can find the prediction as yHat
+    cor_matrix[iter, i] <- cor(y[tst], yp_ts[tst], use = "complete") # We are interested in making the correlation between our observed values and the prediction of each test population.so we use the function cor for the correlations which should be just for the testing [tst]. we store all the correlations in the matrix cor_matrix
+  }
+}
+
+
+# Print the correlation results
+print(cor_results)# Print the correlation matrix
+cor_matrix
+
+
+
+
+
+
+
+
+### Machine Learning (Random Forrest) using 10 cycles of 5-fold cross-validation (CV1) ###  
+# The script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
+
+
+#activate libraries
+library(randomForestSRC)
+library(dplyr)
+library(caret)
+library(purrr)
+library(BMTME)
+library(foreach)
+library(doParallel)
+library(modelr)
+library(rrBLUP)
+library(TSrepr)
+
+# Import the data set
+Markers <- as.matrix(read.table(file="INPUT_SNP_0.05_MAF_IMPUTED.txt"), header=F)
+head(Markers)
+Pheno <-as.matrix(read.table(file ="ALL_PHENO_FINAL.txt", header=TRUE))
+head(Pheno)
+Markers<-t(Markers)
+Pheno<-as.data.frame(Pheno)
+
+Y<-Pheno
+X<-Markers
+n<-nrow(X)
+p<-ncol(X)
+
+# Create a data frame with the information of the four response variables and all predictors
+Data <- data.frame(GYS=Pheno$GPC_s, GYNS=Pheno$GPC_ns, Markers)
+
+
+head(Data[, 1:8])
+
+responses <- c("GYS", "GYNS")
+n_records <- nrow(Pheno)
+
+n_records
+n_outer_folds <- 5
+n_inner_folds <- 5
+
+# Define the values that are going to be evaluated in the tuning process
+tuning_values <- list(ntrees=c(100, 200, 300),
+                      mtry=c(80, 100, 120),
+                      nodesize=c(3, 6, 9))
+# Get all possible combinations of the defined tuning values (3 * 3 * 3)
+all_combinations <- cross(tuning_values)
+n_combinations <- length(all_combinations)
+########## RANDOM FOREST TUNING AND EVALUATION ##########
+# Define the variable where the final results of each fold will be stored
+Predictions <- data.frame()
+
+#other CV functions that you can use 
+PT_ls = CV.KFold(Data, DataSetID='id',K=5,set_seed = 123)
+PT_ls = PT_ls$CrossValidation_list
+
+# Variable that will hold the best combination of hyperparameters and the
+# MAAPE that was produced.
+best_params <- list(maape=Inf)
+
+#LOOP CROSS-VALIDATION for hyperparameter optimization
+for (j in 1:n_combinations) {
+  cat("\tCombination:", j, "/", n_combinations, "\n")
+  flags <- all_combinations[[j]]
+  cat("\t\tInner folds: ")
+  
+  #CV1
+  for (m in 1:5) {
+    
+    Test = PT_ls[[m]]
+    
+    DataInnerTraining1 <- Data[-Test, ]
+    DataInnerTesting1 <- Data[Test, ]
+    
+    tuning_model1 <- rfsrc(Multivar(GYS, GYNS) ~ .,
+                           data=DataInnerTraining1, ntree=flags$ntree,
+                           mtry=flags$mtry, nodesize=flags$nodesize, splitrule="mv.mse")
+    predictions1 <- predict(tuning_model1, DataInnerTesting1)
+    
+    gyns_maape1 <- maape(DataInnerTesting1$GYS,
+                         predictions1$regrOutput$GYS$predicted)
+    
+    gys_maape1 <- maape(DataInnerTesting1$GYNS,
+                        predictions1$regrOutput$GYNS$predicted)
+    
+    maape_total <- mean(c(gyns_maape1, gys_maape1))
+    
+    # If the current combination gives a lower MAAPE set it as new best_params
+    if (maape_total < best_params$maape) {
+      best_params <- flags
+      best_params$maape <- maape_total
+    }  
+  }
+  cat("\n")
+}
+
+#Fit the model using the Best parameters and accuracy verification! 
+
+#Function to summarize the performance prediction: PC_MM_f
+PC=as.data.frame(matrix(NA, 5))
+l=1
+PT_ls_List <- list()
+for(nrep in 1:10){
+  PT_ls_List[[nrep]] = CV.KFold(Data, DataSetID='id',K=5)
+  PT_ls_List[[nrep]] = PT_ls_List[[nrep]]$CrossValidation_list
+} 
+
+fitOneCvF <- function(X,Y,n,K,p,nrep){
+  
+  Test<-PT_ls_List[[nrep]][[p]]
+  
+  DataTraining <- Data[-Test, ]
+  DataTesting <- Data[Test, ]
+  
+  # Using the best hyper-params combination, retrain the model but using the complete training set
+  model <- rfsrc(Multivar(GYS, GYNS) ~ .,
+                 data=DataTraining,ntree=best_params$ntree,
+                 mtry=best_params$mtry, nodesize=best_params$nodesize, splitrule=NULL)
+  predicted <- predict(model, DataTesting)
+  
+  
+  Observed=DataTesting$GYS
+  Predicted=predicted$regrOutput$GYS$predicted
+  
+  PAS=cor(Predicted, Observed, use="na.or.complete")
+  return(PAS)
+}
+PAS_1<- foreach(nrep=1:10) %:% foreach(p=1:5,.export=c("fitOneCvF"),.packages="randomForestSRC") %dopar% (fitOneCvF(X,Y,n,K,p,nrep))
+PAS<- do.call(c,lapply(PAS_1,function(x) x))
+summary(PAS)
+write.csv(PAS, file="RF_MT_GPC_S_using_GPC_NS_ALL_markers.csv")
+PAS
+
+PAS
+
+
+
+  #CV2
+  for (m in 1:5) {
+    
+    Test = PT_ls[[m]]
+    
+    DataInnerTraining1 <- Data[-Test ]
+    DataInnerTesting1 <- Data[Test ]
+    
+    tuning_model1 <- rfsrc(Multivar(GYS, GYNS) ~ .,
+                           data=DataInnerTraining1, ntree=flags$ntree,
+                           mtry=flags$mtry, nodesize=flags$nodesize, splitrule="mv.mse")
+    predictions1 <- predict(tuning_model1, DataInnerTesting1)
+    
+    gyns_maape1 <- maape(DataInnerTesting1$GYS,
+                         predictions1$regrOutput$GYS$predicted)
+    
+    gys_maape1 <- maape(DataInnerTesting1$GYNS,
+                        predictions1$regrOutput$GYNS$predicted)
+    
+    maape_total <- mean(c(gyns_maape1, gys_maape1))
+    
+    # If the current combination gives a lower MAAPE set it as new best_params
+    if (maape_total < best_params$maape) {
+      best_params <- flags
+      best_params$maape <- maape_total
+    }  
+  }
+  cat("\n")
+}
+
+#Fit the model using the Best parameters and accuracy verification! 
+
+#Function to summarize the performance prediction: PC_MM_f
+PC=as.data.frame(matrix(NA, 5))
+l=1
+PT_ls_List <- list()
+for(nrep in 1:10){
+  PT_ls_List[[nrep]] = CV.KFold(Data, DataSetID='id',K=5)
+  PT_ls_List[[nrep]] = PT_ls_List[[nrep]]$CrossValidation_list
+} 
+
+fitOneCvF <- function(X,Y,n,K,p,nrep){
+  
+  Test<-PT_ls_List[[nrep]][[p]]
+  
+  DataTraining <- Data[-Test ]
+  DataTesting <- Data[Test ]
+  
+  # Using the best hyper-params combination, retrain the model but using the complete training set
+  model <- rfsrc(Multivar(GYS, GYNS) ~ .,
+                 data=DataTraining,ntree=best_params$ntree,
+                 mtry=best_params$mtry, nodesize=best_params$nodesize, splitrule=NULL)
+  predicted <- predict(model, DataTesting)
+  
+  
+  Observed=DataTesting$GYS
+  Predicted=predicted$regrOutput$GYS$predicted
+  
+  PAS=cor(Predicted, Observed, use="na.or.complete")
+  return(PAS)
+}
+PAS_1<- foreach(nrep=1:10) %:% foreach(p=1:5,.export=c("fitOneCvF"),.packages="randomForestSRC") %dopar% (fitOneCvF(X,Y,n,K,p,nrep))
+PAS<- do.call(c,lapply(PAS_1,function(x) x))
+summary(PAS)
+write.csv(PAS, file="RF_MT_GPC_S_using_GPC_NS_ALL_markers.csv")
+PAS
+
+PAS
+
