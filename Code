@@ -24,10 +24,13 @@ colnames(DT) <- paste0("X",1:ncol(DT))
 DT <- as.data.frame(DT);DT$id <- as.factor(rownames(DT))
 
 
-#compute the G matrix
-K <- A.mat(GT)
+#build the G matrix
+X <- scale(GT, scale = T) #scale the markers
+G <- tcrossprod(X)/ncol(X) # perform the crossproduct of the scaled markers
 
-PC=as.data.frame(matrix(NA, 5))
+
+# create the empty matrix
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
 
 #stating the loop
 for(p in 1:10){
@@ -43,15 +46,15 @@ for(p in 1:10){
     yNA[tst] <- NA
   
 ans <- mmer(X1~1,
-            random=~vs(id,Gu=K),
+            random=~vs(id,Gu=G),
             rcov=~units,
             data=y.tnr,verbose = FALSE) # kinship based
 ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
 rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-PC[t,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+cor_matrix[t,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
   }
 }
-summary(PC)
+summary(cor_matrix)
 
 
 
@@ -61,7 +64,7 @@ summary(PC)
 
 
 ### Multivariate GBLUP using 10 cycles of 5-fold cross-validation (CV1) ###  
-#Predicting Grain yield in high nitrogen and well-watered (HNW) (named X1) using Grain yield in low nitrogen under rainfed (LNR) (named X2) 
+# The script is applicable for both predicting Grain Yield in HNW (named X1) using grain yield in LNW (named X2) (and vice-versa) and for predicting grain yield using the five best-correlate traits 
 
 # create the empty matrix
 cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation 10 times (you can change this)
@@ -79,7 +82,7 @@ for (iter in 1:10) {
     y.trn[tst,] <- NA
   
 ans <- mmer(cbind(X1,X2)~1,
-                random=~vs(id,Gu=K),
+                random=~vs(id,Gu=G),
                 rcov=~units,
                 data=y.trn,verbose = FALSE) # kinship based
     ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
@@ -91,10 +94,6 @@ ans <- mmer(cbind(X1,X2)~1,
 # Print the correlation results
 print(cor_results)# Print the correlation matrix
 cor_matrix
-
-
-
-
 
 
 
@@ -117,7 +116,7 @@ for (iter in 1:10) {
     y.trn[tst] <- NA 
   
 ans <- mmer(cbind(X1,X2)~1,
-                random=~vs(id,Gu=K),
+                random=~vs(id,Gu=G),
                 rcov=~units,
                 data=y.trn,verbose = FALSE) # kinship based
     ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
@@ -132,80 +131,6 @@ cor_matrix
 
 
 
-
-
-
-
-
-### Multivariate GBLUP using 10 cycles of 5-fold cross-validation (CV1) ###  
-#Predicting Grain yield in high nitrogen and well-watered (HNW) (named X1) the best-correlated traits 
-
-# create the empty matrix
-cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation 10 times (you can change this)
-
-for (iter in 1:10) {
-  # Set up variables
-  y <- DT[,1] # assuming GY is the name of your trait
-  n <- length(y) # to calculate the length of the genotypes we are going to analyze
-  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
-
-  # Here is the loop for each part of the fifth we have.
-  for (i in 1:max(folds)) {
-    tst <- which(folds == i) 
-    yNA <- DT
-    y.trn[tst,] <- NA
-  
-ans <- mmer(cbind(X1,X3,X4,X5,X6,X7)~1,
-                random=~vs(id,Gu=K),
-                rcov=~units,
-                data=y.trn,verbose = FALSE) # kinship based
-    ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
-    rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-    cor_matrix[iter,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
-}
-}
-
-# Print the correlation results
-print(cor_results)# Print the correlation matrix
-cor_matrix
-
-
-
-
-
-
-
-### Multivariate GBLUP using 10 cycles of 5-fold cross-validation (CV2) ###
-#Predicting Grain yield in high nitrogen and well-watered HNW using the best-correlated traits 
-
-# create the empty matrix
-cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
-
-for (iter in 1:10) {
-  # Set up variables
-  y <- DT[,1] # assuming GY is the name of your trait
-  n <- length(y) # to calculate the length of the genotypes we are going to analyze
-  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
-
-  # Here is the loop for each part of the fifth we have.
-  for (i in 1:max(folds)) {
-    tst <- which(folds == i) 
-    yNA <- DT
-    y.trn[tst] <- NA 
-  
-ans <- mmer(cbind(X1,,X3,X4,X5,X6,X7)~1,
-                random=~vs(id,Gu=K),
-                rcov=~units,
-                data=y.trn,verbose = FALSE) # kinship based
-    ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
-    rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-    cor_matrix[iter,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
-}
-}
-
-# Print the correlation results
-print(cor_results)# Print the correlation matrix
-cor_matrix
 
 
 
