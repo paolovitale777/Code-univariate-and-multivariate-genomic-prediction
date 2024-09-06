@@ -2,7 +2,6 @@
 #Script example for one trait grain yield in high nitrogen and well-watered (HNW) (named X1)
 
 #required packages
-library(rrBLUP)
 library(BGLR)
 library(sommer)
 
@@ -24,6 +23,14 @@ colnames(DT) <- paste0("X",1:ncol(DT))
 DT <- as.data.frame(DT);DT$id <- as.factor(rownames(DT))
 
 
+
+
+colnames(DT) <- paste0("X",1:ncol(DT))
+DT <- as.data.frame(DT);DT$id <- as.factor(rownames(DT))
+n<-nrow(DT)
+p<-ncol(DT)
+rownames(GT) <- rownames(DT)
+
 #build the G matrix
 X <- scale(GT, scale = T) #scale the markers
 G <- tcrossprod(X)/ncol(X) # perform the crossproduct of the scaled markers
@@ -35,23 +42,22 @@ cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and y
 #stating the loop
 for(p in 1:10){
   
-  y <- DT[,1] # assuming GY is the name of your trait
-  n <- length(y) # to calculate the length of the genotypes we are going to analyze
-  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
-
+  PT_ls_List <- CV.KFold(DT, DataSetID='id', K=5)$CrossValidation_list
+  
   for(i in 1:5){
-  
- tst <- which(folds == i) 
-    yNA <- DT
-    yNA[tst] <- NA
-  
-ans <- mmer(X1~1,
-            random=~vs(id,Gu=G),
-            rcov=~units,
-            data=y.tnr,verbose = FALSE) # kinship based
-ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
-rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-cor_matrix[t,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+    
+    tst = as.character(PT_ls_List[[i]])
+    y.tnr<-DT
+    y.tnr[tst,"X1"]<-NA
+    
+    
+    ans <- mmer(X1~1,
+                random=~vsr(id,Gu=G),
+                rcov=~units,
+                data=y.tnr,verbose = FALSE) # kinship based
+    ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
+    rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
+    cor_matrix[p,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
   }
 }
 summary(cor_matrix)
@@ -67,33 +73,30 @@ summary(cor_matrix)
 # The script is applicable for both predicting Grain Yield in HNW (named X1) using grain yield in LNW (named X2) (and vice-versa) and for predicting grain yield using the five best-correlate traits 
 
 # create the empty matrix
-cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation 10 times (you can change this)
+cor_matrix <- matrix(NA, nrow = 10, ncol = 5)  # Assuming you have 5 folds and you want to repeat the cross-validation for 10 times (you can change this)
 
-for (iter in 1:10) {
-  # Set up variables
-  y <- DT[,1] # assuming GY is the name of your trait
-  n <- length(y) # to calculate the length of the genotypes we are going to analyze
-  folds <- sample(1:5, size = n, replace = TRUE) # Based on the size of our population, we randomly split our population into 5 parts
-
-  # Here is the loop for each part of the fifth we have.
-  for (i in 1:max(folds)) {
-    tst <- which(folds == i) 
-    yNA <- DT
-    y.trn[tst,] <- NA
+#stating the loop
+for(p in 1:10){
   
-ans <- mmer(cbind(X1,X2)~1,
-                random=~vs(id,Gu=G),
+  PT_ls_List <- CV.KFold(DT, DataSetID='id', K=5)$CrossValidation_list
+  
+  for(i in 1:5){
+    
+    tst = as.character(PT_ls_List[[i]])
+    y.tnr<-DT
+    y.tnr[tst,c("X1","X2")]<-NA
+    
+    
+    ans <- mmer(cbind(X1,X2)~1,
+                random=~vsr(id,Gu=K),
                 rcov=~units,
-                data=y.trn,verbose = FALSE) # kinship based
+                data=y.tnr,verbose = FALSE) # kinship based
     ans$U$`u:id`$X1 <- as.data.frame(ans$U$`u:id`$X1)
     rownames(ans$U$`u:id`$X1) <- gsub("id","",rownames(ans$U$`u:id`$X1))
-    cor_matrix[iter,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+    cor_matrix[p,i]<-cor(ans$U$`u:id`$X1[tst,],DT[tst,"X1"], use="complete")
+  }
 }
-}
-
-# Print the correlation results
-print(cor_results)# Print the correlation matrix
-cor_matrix
+summary(cor_matrix)
 
 
 
@@ -384,207 +387,114 @@ cor_matrix
 ### Machine Learning (Random Forrest) using 10 cycles of 5-fold cross-validation (CV1) ###  
 # The script is applicable for both predicting Grain Yield in HNW using grain yield in LNW (and vice-versa) and for predicting grain yield using the five best-correlate traits 
 
-
-#activate libraries
+# Activate libraries
 library(randomForestSRC)
 library(dplyr)
 library(caret)
 library(purrr)
 library(BMTME)
-library(foreach)
-library(doParallel)
-library(modelr)
-library(rrBLUP)
-library(TSrepr)
 
-# Import the data set
+#load the Markers and Phenotypes
 Markers <- as.matrix(read.table(file="INPUT_SNP_0.05_MAF_IMPUTED.txt"), header=F)
 head(Markers)
 Pheno <-as.matrix(read.table(file ="ALL_PHENO_FINAL.txt", header=TRUE))
 head(Pheno)
-Markers<-t(Markers)
-Pheno<-as.data.frame(Pheno)
 
-Y<-Pheno
-X<-Markers
-n<-nrow(X)
-p<-ncol(X)
+# Prepare the data for Random Forest
+X <- Markers
+Y <- Pheno
+Data <- data.frame(wheat.Y, wheat.X)  # Combining phenotypes and markers into one dataset
 
-# Create a data frame with the information of the four response variables and all predictors
-Data <- data.frame(GYS=Pheno$GPC_s, GYNS=Pheno$GPC_ns, Markers)
+# Define response variables (traits) and number of records
+responses <- c("X1", "X2")
 
-
-head(Data[, 1:8])
-
-responses <- c("GYS", "GYNS")
-n_records <- nrow(Pheno)
-
-n_records
+# Cross-validation setup
 n_outer_folds <- 5
 n_inner_folds <- 5
 
-# Define the values that are going to be evaluated in the tuning process
-tuning_values <- list(ntrees=c(100, 200, 300),
-                      mtry=c(80, 100, 120),
-                      nodesize=c(3, 6, 9))
-# Get all possible combinations of the defined tuning values (3 * 3 * 3)
+# Define the tuning values for hyperparameter search
+tuning_values <- list(ntree = c(100, 200, 300), mtry = c(80, 100, 120), nodesize = c(3, 6, 9))
 all_combinations <- cross(tuning_values)
 n_combinations <- length(all_combinations)
-########## RANDOM FOREST TUNING AND EVALUATION ##########
-# Define the variable where the final results of each fold will be stored
-Predictions <- data.frame()
 
-#other CV functions that you can use 
-PT_ls = CV.KFold(Data, DataSetID='id',K=5,set_seed = 123)
-PT_ls = PT_ls$CrossValidation_list
+# Initialize variable to store the best parameters
+best_params <- list(maape = Inf)
 
-# Variable that will hold the best combination of hyperparameters and the
-# MAAPE that was produced.
-best_params <- list(maape=Inf)
+# Function to calculate Mean Arctangent Absolute Percentage Error (MAAPE)
+maape <- function(observed, predicted) {
+  return(mean(atan(abs((observed - predicted) / observed))))
+}
 
-#LOOP CROSS-VALIDATION for hyperparameter optimization
+# Define the outer cross-validation fold list
+PT_ls <- CV.KFold(Data, DataSetID='id', K=n_outer_folds, set_seed=123)$CrossValidation_list
+
+# Random Forest hyperparameter tuning with cross-validation
 for (j in 1:n_combinations) {
-  cat("\tCombination:", j, "/", n_combinations, "\n")
-  flags <- all_combinations[[j]]
-  cat("\t\tInner folds: ")
+  cat("Combination:", j, "/", n_combinations, "\n")
+  flags <- all_combinations[[j]]  # Access the list element correctly
   
-  #CV1
-  for (m in 1:5) {
+  # Loop over outer cross-validation folds
+  for (m in 1:n_outer_folds) {
+    Test <- PT_ls[[m]]  # Get the test fold
     
-    Test = PT_ls[[m]]
+    DataInnerTraining1 <- Data[-Test, ]  # Training data
+    DataInnerTesting1 <- Data[Test, ]  # Testing data
     
-    DataInnerTraining1 <- Data[-Test, ]
-    DataInnerTesting1 <- Data[Test, ]
+    # Fit the Random Forest model using current hyperparameter combination
+    tuning_model1 <- rfsrc(Multivar(X1, X2) ~ ., data = DataInnerTraining1, 
+                           ntree = flags$ntree, mtry = flags$mtry, nodesize = flags$nodesize, splitrule = "mv")  # Use 'mv' for multivariate splitting
     
-    tuning_model1 <- rfsrc(Multivar(GYS, GYNS) ~ .,
-                           data=DataInnerTraining1, ntree=flags$ntree,
-                           mtry=flags$mtry, nodesize=flags$nodesize, splitrule="mv.mse")
+    # Predict on test data
     predictions1 <- predict(tuning_model1, DataInnerTesting1)
     
-    gyns_maape1 <- maape(DataInnerTesting1$GYS,
-                         predictions1$regrOutput$GYS$predicted)
+    # Calculate MAAPE for each trait
+    gyns_maape1 <- maape(DataInnerTesting1$X1, predictions1$regrOutput$X1$predicted)
+    gys_maape1 <- maape(DataInnerTesting1$X2, predictions1$regrOutput$X2$predicted)
     
-    gys_maape1 <- maape(DataInnerTesting1$GYNS,
-                        predictions1$regrOutput$GYNS$predicted)
+    # Average MAAPE across traits
+    maape_total <- mean(c(gyns_maape1, gys_maape1), na.rm = TRUE)
     
-    maape_total <- mean(c(gyns_maape1, gys_maape1))
-    
-    # If the current combination gives a lower MAAPE set it as new best_params
+    # Update best parameters if this combination gives a lower MAAPE
     if (maape_total < best_params$maape) {
       best_params <- flags
       best_params$maape <- maape_total
-    }  
+    }
   }
   cat("\n")
 }
 
-#Fit the model using the Best parameters and accuracy verification! 
+# Fit the final model using the best hyperparameters
+# Initialize storage for PAS results
+PAS_results <- vector("list", n_outer_folds)
 
-#Function to summarize the performance prediction: PC_MM_f
-PC=as.data.frame(matrix(NA, 5))
-l=1
-PT_ls_List <- list()
-for(nrep in 1:10){
-  PT_ls_List[[nrep]] = CV.KFold(Data, DataSetID='id',K=5)
-  PT_ls_List[[nrep]] = PT_ls_List[[nrep]]$CrossValidation_list
-} 
-
-fitOneCvF <- function(X,Y,n,K,p,nrep){
+# Perform final cross-validation using the best parameters
+for (nrep in 1:10) {
+  PT_ls_List <- CV.KFold(Data, DataSetID='id', K=n_outer_folds)$CrossValidation_list
   
-  Test<-PT_ls_List[[nrep]][[p]]
-  
-  DataTraining <- Data[-Test, ]
-  DataTesting <- Data[Test, ]
-  
-  # Using the best hyper-params combination, retrain the model but using the complete training set
-  model <- rfsrc(Multivar(GYS, GYNS) ~ .,
-                 data=DataTraining,ntree=best_params$ntree,
-                 mtry=best_params$mtry, nodesize=best_params$nodesize, splitrule=NULL)
-  predicted <- predict(model, DataTesting)
-  
-  
-  Observed=DataTesting$GYS
-  Predicted=predicted$regrOutput$GYS$predicted
-  
-  PAS=cor(Predicted, Observed, use="na.or.complete")
-  return(PAS)
-}
-PAS_1<- foreach(nrep=1:10) %:% foreach(p=1:5,.export=c("fitOneCvF"),.packages="randomForestSRC") %dopar% (fitOneCvF(X,Y,n,K,p,nrep))
-PAS<- do.call(c,lapply(PAS_1,function(x) x))
-summary(PAS)
-write.csv(PAS, file="RF_MT_GPC_S_using_GPC_NS_ALL_markers.csv")
-PAS
-
-PAS
-
-
-
-  #CV2
-  for (m in 1:5) {
+  for (p in 1:n_outer_folds) {
+    Test <- PT_ls_List[[p]]  # Get the test fold
     
-    Test = PT_ls[[m]]
+    DataTraining <- Data[-Test, ]  # Training data
+    DataTesting <- Data[Test, ]  # Testing data
     
-    DataInnerTraining1 <- Data[-Test ]
-    DataInnerTesting1 <- Data[Test ]
+    # Fit the final Random Forest model using the best parameters
+    model <- rfsrc(Multivar(X1, X2) ~ ., data=DataTraining, 
+                   ntree=best_params$ntree, mtry=best_params$mtry, 
+                   nodesize=best_params$nodesize, splitrule=NULL)
     
-    tuning_model1 <- rfsrc(Multivar(GYS, GYNS) ~ .,
-                           data=DataInnerTraining1, ntree=flags$ntree,
-                           mtry=flags$mtry, nodesize=flags$nodesize, splitrule="mv.mse")
-    predictions1 <- predict(tuning_model1, DataInnerTesting1)
+    # Predict on the test set
+    predicted <- predict(model, DataTesting)
     
-    gyns_maape1 <- maape(DataInnerTesting1$GYS,
-                         predictions1$regrOutput$GYS$predicted)
-    
-    gys_maape1 <- maape(DataInnerTesting1$GYNS,
-                        predictions1$regrOutput$GYNS$predicted)
-    
-    maape_total <- mean(c(gyns_maape1, gys_maape1))
-    
-    # If the current combination gives a lower MAAPE set it as new best_params
-    if (maape_total < best_params$maape) {
-      best_params <- flags
-      best_params$maape <- maape_total
-    }  
+    # Calculate PAS (correlation between predicted and observed values)
+    PAS <- cor(predicted$regrOutput$X1$predicted, DataTesting$X1, use="complete.obs")
+    PAS_results[[p]] <- PAS
   }
-  cat("\n")
 }
 
-#Fit the model using the Best parameters and accuracy verification! 
+# Print and save the final PAS results
+PAS_final <- do.call(c, PAS_results)
+summary(PAS_final)
 
-#Function to summarize the performance prediction: PC_MM_f
-PC=as.data.frame(matrix(NA, 5))
-l=1
-PT_ls_List <- list()
-for(nrep in 1:10){
-  PT_ls_List[[nrep]] = CV.KFold(Data, DataSetID='id',K=5)
-  PT_ls_List[[nrep]] = PT_ls_List[[nrep]]$CrossValidation_list
-} 
-
-fitOneCvF <- function(X,Y,n,K,p,nrep){
-  
-  Test<-PT_ls_List[[nrep]][[p]]
-  
-  DataTraining <- Data[-Test ]
-  DataTesting <- Data[Test ]
-  
-  # Using the best hyper-params combination, retrain the model but using the complete training set
-  model <- rfsrc(Multivar(GYS, GYNS) ~ .,
-                 data=DataTraining,ntree=best_params$ntree,
-                 mtry=best_params$mtry, nodesize=best_params$nodesize, splitrule=NULL)
-  predicted <- predict(model, DataTesting)
-  
-  
-  Observed=DataTesting$GYS
-  Predicted=predicted$regrOutput$GYS$predicted
-  
-  PAS=cor(Predicted, Observed, use="na.or.complete")
-  return(PAS)
-}
-PAS_1<- foreach(nrep=1:10) %:% foreach(p=1:5,.export=c("fitOneCvF"),.packages="randomForestSRC") %dopar% (fitOneCvF(X,Y,n,K,p,nrep))
-PAS<- do.call(c,lapply(PAS_1,function(x) x))
-summary(PAS)
-write.csv(PAS, file="RF_MT_GPC_S_using_GPC_NS_ALL_markers.csv")
-PAS
-
-PAS
-
+# Write PAS results to a CSV file
+write.csv(PAS_final, file="RF_MT_GYS_GYNS_PAS_results.csv")
+PAS_final
